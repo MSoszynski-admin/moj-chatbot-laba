@@ -16,6 +16,43 @@
   font-weight: 600;
 }
 
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.toolbarError {
+  font-size: 14px;
+  color: #b42318;
+}
+
+.logout {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid #8888;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.login {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 420px;
+  margin: auto;
+}
+
+.loginTitle {
+  font-size: 20px;
+  font-weight: 600;
+}
+
 .messages {
   display: flex;
   flex: 1;

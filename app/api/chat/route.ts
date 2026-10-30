@@ -8,6 +8,7 @@ import {
   streamText,
   toUIMessageStream,
 } from "ai";
+import { hasSession } from "@/lib/session";
 
 function describeError(error: unknown) {
   const cause = RetryError.isInstance(error) ? error.lastError : error;
@@ -28,6 +29,12 @@ function describeError(error: unknown) {
 }
 
 export async function POST(req: Request) {
+  if (!(await hasSession())) {
+    return new Response("Sesja wygasła. Odśwież stronę i wpisz hasło.", {
+      status: 401,
+    });
+  }
+
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   const model = process.env.OPENROUTER_MODEL?.trim();
 
