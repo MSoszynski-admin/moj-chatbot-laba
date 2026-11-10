@@ -9,6 +9,7 @@ import {
   toUIMessageStream,
 } from "ai";
 import { hasSession } from "@/lib/session";
+import { CHAT_SYSTEM_PROMPT } from "@/lib/studio-nova";
 
 function describeError(error: unknown) {
   const cause = RetryError.isInstance(error) ? error.lastError : error;
@@ -66,6 +67,8 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openrouter.chat(model),
+    // Instrukcja firmy jest ustawiana tylko tutaj, na serwerze.
+    system: CHAT_SYSTEM_PROMPT,
     messages: await convertToModelMessages(messages),
   });
 
