@@ -14,7 +14,6 @@ function messageText(message: UIMessage) {
 export function Chat() {
   const { messages, sendMessage, status, error } = useChat();
   const [input, setInput] = useState("");
-  const [logoutFailed, setLogoutFailed] = useState(false);
   const messagesRef = useRef<HTMLElement>(null);
 
   const isBusy = status === "submitted" || status === "streaming";
@@ -28,31 +27,8 @@ export function Chat() {
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight });
   }, [messages, isWaiting, error]);
 
-  async function logout() {
-    setLogoutFailed(false);
-
-    try {
-      const response = await fetch("/api/logout", { method: "POST" });
-      if (!response.ok) throw new Error("Logout failed");
-      window.location.assign("/");
-    } catch {
-      setLogoutFailed(true);
-    }
-  }
-
   return (
     <>
-      <div className={styles.toolbar}>
-        {logoutFailed && (
-          <p className={styles.toolbarError} role="alert">
-            Nie udało się wyjść. Spróbuj ponownie.
-          </p>
-        )}
-        <button className={styles.logout} type="button" onClick={logout}>
-          Wyjdź
-        </button>
-      </div>
-
       <section
         ref={messagesRef}
         className={styles.messages}

@@ -141,3 +141,106 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-right: auto;
+}
+
+.tab,
+.tabActive {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid #8888;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.tabActive {
+  color: var(--background);
+  background: var(--foreground);
+  border-color: var(--foreground);
+}
+
+.panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.analysis {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.analysisForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analysisForm .send {
+  align-self: flex-end;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.textarea {
+  padding: 10px 14px;
+  font: inherit;
+  line-height: 1.5;
+  color: inherit;
+  background: transparent;
+  border: 1px solid #8888;
+  border-radius: 10px;
+  resize: vertical;
+}
+
+.result {
+  padding: 16px;
+  border: 1px solid #8884;
+  border-radius: 12px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+}
+
+.fields dt {
+  font-family: var(--font-geist-mono);
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.draft {
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.notice {
+  margin-top: 12px;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.issues {
+  margin: 6px 0 0 18px;
+  font-size: 14px;
+}
