@@ -244,3 +244,20 @@
   margin: 6px 0 0 18px;
   font-size: 14px;
 }
+
+.warnings {
+  margin: 12px 0 0;
+  padding: 10px 14px 10px 32px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #93370d;
+  background: #fdb02214;
+  border: 1px solid #fdb02266;
+  border-radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .warnings {
+    color: #fec84b;
+  }
+}

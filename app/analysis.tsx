@@ -11,7 +11,11 @@ type AnalysisResult = {
 };
 
 type ApiResponse =
-  | { ok: true; analysis: AnalysisResult }
+  | {
+      ok: true;
+      analysis: AnalysisResult;
+      warnings?: { code: string; message: string }[];
+    }
   | { ok: false; reason: string; message: string; issues?: string[] };
 
 const CATEGORY_LABELS: Record<AnalysisResult["category"], string> = {
@@ -98,6 +102,13 @@ export function Analysis() {
             <dt>draft</dt>
             <dd className={styles.draft}>{result.analysis.draft}</dd>
           </dl>
+          {result.warnings && result.warnings.length > 0 && (
+            <ul className={styles.warnings} aria-label="Ostrzeżenia serwera">
+              {result.warnings.map((warning) => (
+                <li key={warning.code}>{warning.message}</li>
+              ))}
+            </ul>
+          )}
           <p className={styles.notice}>
             To tylko szkic. Aplikacja niczego nie wysyła, nie rezerwuje i nie
             potwierdza płatności.

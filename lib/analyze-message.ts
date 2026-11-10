@@ -9,13 +9,22 @@ import {
   ANALYSIS_SYSTEM_PROMPT,
   AnalysisSchema,
   interpretModelOutput,
+  wrapClientMessage,
   type AnalysisOutcome,
 } from "./analysis";
+import { applyGuards, type GuardWarning } from "./guards";
 import { describeProviderError } from "./provider-errors";
 
 export type AnalyzeResult =
-  | AnalysisOutcome
+  | (Extract<AnalysisOutcome, { ok: true }> & { warnings: GuardWarning[] })
+  | Extract<AnalysisOutcome, { ok: false }>
   | { ok: false; reason: "provider"; message: string };
+
+function withGuards(message: string, outcome: AnalysisOutcome): AnalyzeResult {
+  if (!outcome.ok) return outcome;
+  const guarded = applyGuards(message, outcome.analysis);
+  return { ok: true, analysis: guarded.analysis, warnings: guarded.warnings };
+}
 
 /**
  * Wywołuje model w trybie structured output, a potem i tak sprawdza wynik
@@ -30,7 +39,8 @@ export async function analyzeMessage(
     const result = await generateText({
       model,
       system: ANALYSIS_SYSTEM_PROMPT,
-      prompt: message,
+      // Wiadomość idzie jako dane w znacznikach, nigdy jako instrukcja.
+      prompt: wrapClientMessage(message),
       output: Output.object({
         schema: AnalysisSchema,
         name: "analiza_wiadomosci",
@@ -40,13 +50,13 @@ export async function analyzeMessage(
       maxRetries: 1,
     });
 
-    return interpretModelOutput(result.text, result.finishReason);
+    return withGuards(message, interpretModelOutput(result.text, result.finishReason));
   } catch (error) {
     if (NoObjectGeneratedError.isInstance(error)) {
-      return interpretModelOutput(error.text, error.finishReason);
+      return withGuards(message, interpretModelOutput(error.text, error.finishReason));
     }
     if (NoOutputGeneratedError.isInstance(error)) {
-      return interpretModelOutput(undefined, undefined);
+      return withGuards(message, interpretModelOutput(undefined, undefined));
     }
     return { ok: false, reason: "provider", message: describeProviderError(error) };
   }

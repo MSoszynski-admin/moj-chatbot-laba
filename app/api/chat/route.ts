@@ -35,6 +35,12 @@ export async function POST(req: Request) {
   }
 
   const messages = validation.data;
+
+  // Przeglądarka może przysłać tylko wiadomości użytkownika i wcześniejsze
+  // odpowiedzi asystenta. Instrukcję systemową ustawia wyłącznie serwer.
+  if (messages.some((m) => m.role !== "user" && m.role !== "assistant")) {
+    return new Response("Nieprawidłowe dane rozmowy.", { status: 400 });
+  }
   const lastMessage = messages.at(-1);
   const hasText = lastMessage?.parts.some(
     (part) => part.type === "text" && part.text.trim() !== "",
