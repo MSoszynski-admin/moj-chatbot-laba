@@ -4,7 +4,7 @@
 // więc awaria jednego narzędzia nie wywraca całej rozmowy.
 
 import type { OpenRouterProvider } from "@openrouter/ai-sdk-provider";
-import { generateImage, tool, type ImageModel } from "ai";
+import { generateImage, generateText, isStepCount, tool, type ImageModel, type LanguageModel } from "ai";
 import { z } from "zod";
 
 export const MAX_STEPS = 5;
@@ -110,14 +110,46 @@ export function warsawNow(now = new Date()) {
 /** Zestaw narzędzi agenta. Provider i model obrazów podajemy z zewnątrz (łatwo testować). */
 export function createAgentTools(options: {
   openrouter: Pick<OpenRouterProvider, "tools">;
+  searchModel: LanguageModel;
   imageModel: ImageModel;
   fetchImpl?: typeof fetch;
 }) {
-  const { openrouter, imageModel, fetchImpl = fetch } = options;
+  const { openrouter, searchModel, imageModel, fetchImpl = fetch } = options;
 
   return {
-    // 1. Wyszukiwanie w internecie: wykonuje je OpenRouter, do nas wracają źródła.
-    wyszukiwanie: openrouter.tools.webSearch({ maxResults: 3, engine: "native" }),
+    // 1. Wyszukiwanie w internecie. Osobne wywołanie modelu z wyszukiwaniem Google
+    //    (OpenRouter webSearch). Źródła wracają w wyniku narzędzia, więc są widoczne
+    //    także wtedy, gdy w tym samym zadaniu agent używa innych narzędzi.
+    wyszukiwanie: tool({
+      description:
+        "Wyszukuje aktualne informacje w internecie (Google) i zwraca streszczenie ze źródłami. Użyj przy pytaniach " +
+        "o bieżące wydarzenia, pogodę, prognozy, ceny rynkowe, nowości i fakty, których nie jesteś pewien.",
+      inputSchema: z.object({
+        zapytanie: z.string().min(2).max(300).describe("Pytanie lub fraza do wyszukania, po polsku albo angielsku"),
+      }),
+      execute: async ({ zapytanie }) => {
+        try {
+          const result = await generateText({
+            model: searchModel,
+            tools: { web: openrouter.tools.webSearch({ maxResults: 3, engine: "native" }) },
+            stopWhen: isStepCount(2),
+            instructions:
+              "Wyszukaj informacje w internecie i streść je po polsku w 3-6 zdaniach. Podawaj tylko fakty ze źródeł, z datami.",
+            prompt: zapytanie,
+          });
+          const seen = new Set<string>();
+          const zrodla = result.sources
+            .filter((s) => s.sourceType === "url" && !seen.has(s.url) && seen.add(s.url))
+            .map((s) => ({ tytul: (s as { title?: string }).title ?? "", url: (s as { url: string }).url }));
+          if (zrodla.length === 0) {
+            return { blad: "Wyszukiwarka nie zwróciła źródeł. Nie podawaj faktów bez źródła." };
+          }
+          return { streszczenie: result.text, zrodla, pobrano: new Date().toISOString() };
+        } catch {
+          return { blad: "Wyszukiwanie w internecie jest chwilowo niedostępne." };
+        }
+      },
+    }),
 
     // 2. Generowanie obrazu (Nano Banana 2).
     generujObraz: tool({
@@ -194,8 +226,8 @@ export const TOOL_INSTRUCTIONS = `Format odpowiedzi:
 - Nie używaj Markdown (bez gwiazdek i nagłówków). Źródła z wyszukiwania aplikacja pokazuje pod odpowiedzią. Przy kursie NBP podaj datę i numer tabeli.
 
 Masz narzędzia. Wybieraj je sam, zgodnie z pytaniem:
-- wyszukiwanie: aktualne wydarzenia, ceny rynkowe, daty i fakty, których nie jesteś pewien.
-  Opieraj odpowiedź na znalezionych źródłach i nie wymyślaj adresów stron.
+- wyszukiwanie: aktualne wydarzenia, pogoda, ceny rynkowe, daty i fakty, których nie jesteś pewien.
+  Opieraj odpowiedź wyłącznie na wyniku wyszukiwania. Nie podawaj nazw stron ani faktów, których nie ma w wyniku.
 - generujObraz: gdy użytkownik prosi o grafikę, plakat, logo lub ilustrację.
 - cenaWWalucie: cena konsultacji lub kwota w złotych w walucie obcej, kurs waluty.
 - aktualnyCzas: pytania zależne od dzisiejszej daty.

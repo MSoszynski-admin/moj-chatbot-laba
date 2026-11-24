@@ -90,6 +90,26 @@ function scriptedModel(steps: Array<{ toolName: string; input: unknown } | { tex
 
 const openrouter = createOpenRouter({ apiKey: "test-bez-sieci" });
 
+// Model wyszukiwania: zwraca streszczenie i źródło (albo nic, albo błąd).
+function searchModel(mode: "ok" | "noSources" | "down" = "ok") {
+  return new MockLanguageModelV4({
+    doGenerate: async () => {
+      if (mode === "down") throw new Error("search down");
+      return {
+        content: [
+          { type: "text", text: "W sobotę w Krakowie 3 st. C, pochmurno." },
+          ...(mode === "ok"
+            ? [{ type: "source" as const, sourceType: "url" as const, id: "s1", url: "https://pogoda.example/krakow", title: "Pogoda Kraków" }]
+            : []),
+        ],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage,
+        warnings: [],
+      };
+    },
+  });
+}
+
 // 1. Narzędzia osobno
 await test("NBP: poprawna odpowiedź daje kurs i datę tabeli", async () => {
   const r = await fetchNbpRate("EUR", nbpOk);
@@ -109,7 +129,7 @@ await test("NBP: brak sieci daje komunikat, nie wyjątek", async () => {
   assert.equal(r.ok, false);
 });
 await test("cenaWWalucie: 150 zł po 4,25 = 35,29 EUR", async () => {
-  const tools = createAgentTools({ openrouter, imageModel: imageOk(), fetchImpl: nbpOk });
+  const tools = createAgentTools({ openrouter, searchModel: searchModel(), imageModel: imageOk(), fetchImpl: nbpOk });
   const out = (await tools.cenaWWalucie.execute!({ waluta: "eur" }, { toolCallId: "t", messages: [], context: {} } as never)) as Record<
     string,
     unknown
@@ -134,15 +154,15 @@ await test("generujObraz: awaria modelu daje polski komunikat", async () => {
   assert.match(r.error ?? "", /Nie udało się wygenerować obrazu/);
 });
 await test("generujObraz: do modelu wraca krótki tekst, nie plik", async () => {
-  const tools = createAgentTools({ openrouter, imageModel: imageOk() });
+  const tools = createAgentTools({ openrouter, searchModel: searchModel(), imageModel: imageOk() });
   const output = await createImage(imageOk(), "x");
   const forModel = await tools.generujObraz.toModelOutput!({ toolCallId: "t", input: { opis: "x" }, output });
   assert.deepEqual(forModel, { type: "text", value: "obraz wygenerowany i pokazany użytkownikowi" });
 });
 
 // 2. Agent: wybór narzędzia i obsługa błędu w jednej pętli
-async function runAgent(model: MockLanguageModelV4, fetchImpl: typeof fetch, image = imageOk()) {
-  const tools = createAgentTools({ openrouter, imageModel: image, fetchImpl });
+async function runAgent(model: MockLanguageModelV4, fetchImpl: typeof fetch, image = imageOk(), search = searchModel()) {
+  const tools = createAgentTools({ openrouter, searchModel: search, imageModel: image, fetchImpl });
   return generateText({ model, tools, prompt: "test", stopWhen: isStepCount(5) });
 }
 
@@ -195,10 +215,43 @@ await test("agent: limit 5 kroków zatrzymuje pętlę", async () => {
   const r = await runAgent(model, nbpOk);
   assert.equal(r.steps.length, 5);
 });
-await test("agent: wyszukiwanie jest zarejestrowane jako narzędzie dostawcy", () => {
-  const tools = createAgentTools({ openrouter, imageModel: imageOk() });
+await test("agent: cztery narzędzia w jednym zestawie", () => {
+  const tools = createAgentTools({ openrouter, searchModel: searchModel(), imageModel: imageOk() });
   assert.deepEqual(Object.keys(tools).sort(), ["aktualnyCzas", "cenaWWalucie", "generujObraz", "wyszukiwanie"]);
-  assert.equal((tools.wyszukiwanie as { type?: string }).type, "provider");
+});
+await test("agent: wyszukiwanie i obraz w jednym zadaniu, źródła zostają w wyniku", async () => {
+  const r = await runAgent(
+    scriptedModel([
+      { toolName: "wyszukiwanie", input: { zapytanie: "pogoda Kraków sobota" } },
+      { toolName: "generujObraz", input: { opis: "spacer w pochmurny dzień" } },
+      { text: "Gotowe." },
+    ]),
+    nbpOk,
+  );
+  const results = r.steps.flatMap((s) => s.toolResults);
+  assert.deepEqual(results.map((x) => x.toolName), ["wyszukiwanie", "generujObraz"]);
+  const search = results[0]?.output as { zrodla?: { url: string }[] };
+  assert.equal(search.zrodla?.[0]?.url, "https://pogoda.example/krakow");
+});
+await test("wyszukiwanie: brak źródeł daje błąd zamiast faktów bez źródła", async () => {
+  const r = await runAgent(
+    scriptedModel([{ toolName: "wyszukiwanie", input: { zapytanie: "x x" } }, { text: "Brak danych." }]),
+    nbpOk,
+    imageOk(),
+    searchModel("noSources"),
+  );
+  const out = r.steps.flatMap((s) => s.toolResults)[0]?.output as { blad?: string };
+  assert.match(out.blad ?? "", /nie zwróciła źródeł/);
+});
+await test("wyszukiwanie: awaria wyszukiwarki daje komunikat", async () => {
+  const r = await runAgent(
+    scriptedModel([{ toolName: "wyszukiwanie", input: { zapytanie: "x x" } }, { text: "Nie działa." }]),
+    nbpOk,
+    imageOk(),
+    searchModel("down"),
+  );
+  const out = r.steps.flatMap((s) => s.toolResults)[0]?.output as { blad?: string };
+  assert.match(out.blad ?? "", /chwilowo niedostępne/);
 });
 
 console.log(`\nWszystkie testy przeszły: ${passed}`);

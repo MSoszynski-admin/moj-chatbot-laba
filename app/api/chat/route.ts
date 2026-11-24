@@ -88,6 +88,7 @@ export async function POST(req: Request) {
   const openrouter = createOpenRouter({ apiKey });
   const tools = createAgentTools({
     openrouter,
+    searchModel: openrouter.chat(modelId),
     imageModel: openrouter.imageModel(IMAGE_MODEL_ID),
   });
 

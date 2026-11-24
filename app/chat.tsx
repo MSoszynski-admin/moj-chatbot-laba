@@ -78,7 +78,21 @@ function Picture({ result }: { result: ImageResult }) {
 function Message({ message }: { message: AgentMessage }) {
   const isAssistant = message.role === "assistant";
   const tools = isAssistant ? usedTools(message) : [];
-  const sources = message.parts.filter((part) => part.type === "source-url");
+  // Źródła: z narzędzia wyszukiwania oraz (gdyby model sam szukał) z części source-url.
+  const sources = [
+    ...message.parts.flatMap((part) =>
+      part.type === "tool-wyszukiwanie" && part.state === "output-available"
+        ? ((part.output as { zrodla?: { tytul: string; url: string }[] }).zrodla ?? []).map((z) => ({
+            sourceId: z.url,
+            url: z.url,
+            title: z.tytul,
+          }))
+        : [],
+    ),
+    ...message.parts
+      .filter((part) => part.type === "source-url")
+      .map((part) => ({ sourceId: part.sourceId, url: part.url, title: part.title })),
+  ];
   const seen = new Set<string>();
   const uniqueSources = sources.filter((s) => !seen.has(s.url) && seen.add(s.url));
 
