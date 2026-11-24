@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test:analysis": "tsx tests/analysis.test.mts"
+    "test:analysis": "tsx tests/analysis.test.mts",
+    "test:tools": "tsx tests/tools.test.mts"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.161",

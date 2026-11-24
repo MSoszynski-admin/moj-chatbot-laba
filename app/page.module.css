@@ -261,3 +261,99 @@
     color: #fec84b;
   }
 }
+
+/* Lekcja 3: narzędzia, źródła, obrazy */
+.labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.label {
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid #8886;
+  border-radius: 999px;
+}
+
+.small {
+  display: block;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.sources {
+  margin-top: 8px;
+  padding-top: 8px;
+  font-size: 14px;
+  border-top: 1px solid #8884;
+}
+
+.sources ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.sources a,
+.picture a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.picture {
+  margin: 8px 0 0;
+}
+
+.picture img {
+  display: block;
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.thumb {
+  display: block;
+  max-width: 220px;
+  max-height: 220px;
+  margin-top: 6px;
+  border-radius: 8px;
+}
+
+.attachment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.attachment .thumb {
+  max-width: 64px;
+  max-height: 64px;
+  margin: 0;
+}
+
+.ghost {
+  height: 44px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid #8888;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  .composer {
+    flex-wrap: wrap;
+  }
+  .input {
+    flex-basis: 100%;
+  }
+}
