@@ -188,7 +188,12 @@ export function createAgentTools(options: {
 
 export type AgentTools = ReturnType<typeof createAgentTools>;
 
-export const TOOL_INSTRUCTIONS = `Masz narzędzia. Wybieraj je sam, zgodnie z pytaniem:
+export const TOOL_INSTRUCTIONS = `Format odpowiedzi:
+- Format szkicu (kategoria, szkic, do sprawdzenia) stosuj tylko wtedy, gdy użytkownik wkleja wiadomość od klienta.
+- Na pytania pracownika, prośby o grafikę i pytania o zdjęcie odpowiadaj wprost, zwykłym tekstem.
+- Nie używaj Markdown (bez gwiazdek i nagłówków). Źródła z wyszukiwania aplikacja pokazuje pod odpowiedzią. Przy kursie NBP podaj datę i numer tabeli.
+
+Masz narzędzia. Wybieraj je sam, zgodnie z pytaniem:
 - wyszukiwanie: aktualne wydarzenia, ceny rynkowe, daty i fakty, których nie jesteś pewien.
   Opieraj odpowiedź na znalezionych źródłach i nie wymyślaj adresów stron.
 - generujObraz: gdy użytkownik prosi o grafikę, plakat, logo lub ilustrację.
